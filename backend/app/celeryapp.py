@@ -26,10 +26,19 @@ from celery import Celery
 import os
 import psycopg2
 from celery import group
+import requests
+from bs4 import BeautifulSoup
 
 celery = Celery(__name__)
 celery.conf.broker_url = os.environ.get("CELERY_BROKER_URL", "redis://localhost:6379")
 celery.conf.result_backend = os.environ.get("CELERY_RESULT_BACKEND", "redis://localhost:6379")
+
+def scrape_and_save(url="https://bbc.com"):
+    links = scrape_links(url)[:10]
+    tasks = group(scrape.s(link) for link in links)
+    results = tasks()
+    articles = results.get()
+    return tasks
 
 @celery.task()
 def scrape(url):
@@ -68,18 +77,3 @@ def scrape_links(url):
             link = url + link
         data.append(link)
     return data
-
-def scrape_and_save(url="https://bbc.com"):
-    links = scrape_links(url)[:10]
-    tasks = group(scrape.s(link) for link in links)
-    results = tasks()
-    articles = results.get()
-    return tasks
-
-postgres_conn = psycopg2.connect(
-    host='db',
-    port=5432,
-    user='postgres',
-    password='postgres',
-    database='postgres'
-)

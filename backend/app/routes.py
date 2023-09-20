@@ -26,6 +26,8 @@
 from fastapi import APIRouter
 import aiopg
 
+from app.celeryapp import scrape_and_save
+
 router = APIRouter()
 
 #routes
